@@ -776,7 +776,7 @@ function Algorithm({slug}:{slug:string}) {
                 </div>}
           {error&&!loading&&<div className="api-error" role="alert">{error}</div>}
           {result&&!error&&model.slug!=='decision'&&<section className={`meaning${stale?' stale-result':''}`}><span><CircleHelp/></span><div><h3>What this means</h3><p>{result.interpretation}</p></div></section>}
-          {model.slug!=='decision'&&model.slug!=='loan-amount'&&<EvaluationSummary slug={model.slug} metrics={metrics} error={metricsError}/>}
+          {model.slug!=='decision'&&model.slug!=='loan-amount'&&model.slug!=='risk-label'&&model.slug!=='default-probability'&&<EvaluationSummary slug={model.slug} metrics={metrics} error={metricsError}/>}
         </div>
       </div>
     </div>
