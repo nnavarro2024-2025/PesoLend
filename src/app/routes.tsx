@@ -334,7 +334,7 @@ const defaultAlgorithmValues: Record<string, string> = {
 }
 
 const algorithmScenarios: Record<string, string> = {
-  'loan-amount': 'Maria applies for a loan. What amount does the model suggest for her income and expenses?',
+  'loan-amount': '',
   decision: "Maria's application arrives. Is it approved, and which rules decided it?",
   'similar-borrowers': 'A new applicant arrives. What happened to the five most similar example borrowers in our dataset?',
   'classify-message': 'A customer writes about a late payment. Which team should get the message?',
@@ -720,8 +720,7 @@ function Algorithm({slug}:{slug:string}) {
                         <div><span>Minimum loan</span><b>{formatPeso(result.min_loan)}</b></div>
                         <div><span>Maximum loan</span><b>{formatPeso(result.max_loan)}</b></div>
                       </div>
-                      <div className="big-result">{formatPeso(result.suggested_amount)}<small>Suggested loan amount</small><small className="estimate-note">An estimate, not a guarantee.</small>
-                        {result.adjusted==='capped'&&<small className="cap-note">Capped at PesoLend's maximum loan.</small>}
+                      <div className="big-result">{formatPeso(result.suggested_amount)}<small>Suggested loan amount</small>
                         {result.adjusted==='raised'&&<small className="cap-note">Raised to PesoLend's minimum loan. These details are outside the training data range.</small>}
                       </div>
                     </>
@@ -777,7 +776,7 @@ function Algorithm({slug}:{slug:string}) {
                 </div>}
           {error&&!loading&&<div className="api-error" role="alert">{error}</div>}
           {result&&!error&&model.slug!=='decision'&&<section className={`meaning${stale?' stale-result':''}`}><span><CircleHelp/></span><div><h3>What this means</h3><p>{result.interpretation}</p></div></section>}
-          {model.slug!=='decision'&&<EvaluationSummary slug={model.slug} metrics={metrics} error={metricsError}/>}
+          {model.slug!=='decision'&&model.slug!=='loan-amount'&&<EvaluationSummary slug={model.slug} metrics={metrics} error={metricsError}/>}
         </div>
       </div>
     </div>
