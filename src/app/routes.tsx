@@ -25,6 +25,11 @@ const models = [
   { slug: 'default-probability', name: 'Neural Network', service: 'Risk prediction', line: 'Spot hidden risk', icon: Network },
 ]
 
+function formatPeso(value: number): string {
+  const formatted = Math.round(Math.abs(value)).toLocaleString('en-US')
+  return value < 0 ? `-₱${formatted}` : `₱${formatted}`
+}
+
 function Logo() {
   return <Link to="/" className="logo"><span>₱</span> ₱esoLend</Link>
 }
@@ -47,7 +52,6 @@ function PublicShell() {
     <footer>
       <div><Logo /><p>Loans made clear.</p></div>
       <div><b>Explore</b><Link to="/company">Company</Link><Link to="/ml-lab">ML Lab</Link><Link to="/data">Data</Link></div>
-      <div><b>Portals</b><Link to="/login">Borrower</Link><Link to="/login">Loan officer</Link></div>
     </footer>
   </>
 }
@@ -62,37 +66,20 @@ function Home() {
       </div>
       <div className="hero-visual">
         <div className="limit-card">
-          <div className="card-top"><span className="icon-box mint"><PhilippinePeso/></span><span className="status neutral">Demo product cap</span></div>
-          <span className="muted">Maximum loan amount</span>
-          <strong>₱60,000</strong>
+          <div className="card-top"><span className="icon-box mint"><PhilippinePeso/></span><span className="status neutral">Loan amounts</span></div>
+          <span className="muted">Up to</span>
+          <strong>{formatPeso(60_000)}</strong>
           <small className="estimate-note">Actual offers depend on each application.</small>
         </div>
         <div className="float-card risk"><ShieldCheck/><span><b>Clear terms</b></span></div>
         <div className="float-card speed"><Clock3/><span><b>Decision in minutes</b></span></div>
       </div>
     </section>
-    <section className="section compact">
-      <div className="section-head"><div><span className="kicker">WHAT WE DO</span><h2>Smarter at every step</h2></div><p>Three services. Six models.</p></div>
-      <div className="card-grid three">
-        <Service icon={<HandCoins/>} title="Loan assessment" text="A fair amount and clear decision."/>
-        <Service icon={<Headphones/>} title="Support sorting" text="Your message reaches the right team."/>
-        <Service icon={<ShieldCheck/>} title="Risk prediction" text="Safer loans for everyone."/>
-      </div>
-    </section>
-    <section className="process-band">
-      <div className="section compact"><span className="kicker light">HOW IT WORKS</span><div className="steps">
-        {['Apply','Verify','Models check','Decision','Loan'].map((s,i)=><div key={s}><b>{i+1}</b><span>{s}</span>{i<4&&<ChevronRight/>}</div>)}
-      </div></div>
-    </section>
     <section className="section">
       <div className="section-head"><div><span className="kicker">THE ML LAB</span><h2>Meet the decision team</h2></div><Link className="text-link" to="/ml-lab">View all models <ArrowRight/></Link></div>
       <div className="model-grid">{models.map(m=><ModelCard key={m.slug} {...m}/>)}</div>
     </section>
   </>
-}
-
-function Service({icon,title,text}:{icon:ReactNode,title:string,text:string}) {
-  return <article className="service-card"><span className="icon-box">{icon}</span><h3>{title}</h3><p>{text}</p><Link to="/ml-lab">See models <ArrowRight/></Link></article>
 }
 
 function ModelCard({slug,name,service,line,icon:Icon}:typeof models[number]) {
@@ -104,25 +91,24 @@ function ModelCard({slug,name,service,line,icon:Icon}:typeof models[number]) {
 
 function Company() {
   const needs = [
-    { title: 'Estimate suggested loan amounts', text: 'Match offers to what a borrower can afford.', icon: <HandCoins/> },
-    { title: 'Judge repayment risk', text: 'Spot risk early and make decisions easier to explain.', icon: <ShieldCheck/> },
-    { title: 'Route customer messages', text: 'Send each message to the team best placed to help.', icon: <Headphones/> },
+    { title: 'Estimate loan amounts', text: 'Suggest loan amounts based on income, expenses, credit score and years of work.', icon: <HandCoins/> },
+    { title: 'Assess repayment risk', text: 'Identify borrowers who may have difficulty repaying, based on patterns in their financial information.', icon: <ShieldCheck/> },
+    { title: 'Route customer messages', text: 'Direct customer concerns to the right support team.', icon: <Headphones/> },
   ]
   const goals = [
-    'Offer amounts borrowers can afford.',
-    'Explain decisions with clear reasons.',
-    'Identify repayment risk early.',
-    'Get customer messages to the right team.',
+    { title: 'Accessible lending', text: 'Make loan services more convenient for customers who need financial help.', icon: <HandCoins/> },
+    { title: 'Responsible assessments', text: "Consider a borrower's financial situation when evaluating applications.", icon: <Check/> },
+    { title: 'Early risk detection', text: 'Identify possible repayment problems early.', icon: <ShieldCheck/> },
+    { title: 'Faster customer support', text: 'Help customers get their concerns to the right team.', icon: <Headphones/> },
   ]
-  const goalTitles = ['Affordable offers', 'Clear reasons', 'Early risk detection', 'Faster support']
   return <div className="page section company-page">
     <h1 className="company-title">About ₱esoLend</h1>
     <section className="panel company-card company-overview">
-      <p>₱esoLend is a fictional digital lending company in the Philippines. It uses machine learning to estimate suggested loan amounts, assess repayment risk, and route customer messages, so every decision is faster and easier to explain.</p>
+      <p>₱esoLend is a digital lending company in the Philippines that aims to make borrowing more convenient and accessible. It uses machine learning to help assess loan applications, estimate suitable loan amounts, identify repayment risks, and direct customer concerns to the right support team.</p>
     </section>
     <div className="company-principles">
-      <InfoCard className="company-card" icon={<Target/>} title="Mission" text="To make borrowing faster and easier to understand by explaining every lending decision in plain language."/>
-      <InfoCard className="company-card" icon={<Sparkles/>} title="Vision" text="A lending industry where every customer can see why a decision was made."/>
+      <InfoCard className="company-card" icon={<Target/>} title="Mission" text="To provide convenient and accessible lending services that help customers meet their financial needs."/>
+      <InfoCard className="company-card" icon={<Sparkles/>} title="Vision" text="To become a trusted digital lending platform that makes borrowing simpler and more accessible for Filipinos."/>
     </div>
     <section className="company-section">
       <h2 className="company-section-heading">Data-driven needs</h2>
@@ -130,12 +116,12 @@ function Company() {
     </section>
     <section className="company-section">
       <h2 className="company-section-heading">What we work toward</h2>
-      <div className="company-goals">{goals.map((goal,index)=><InfoCard
+      <div className="company-goals">{goals.map(goal=><InfoCard
         className="company-card"
-        key={goal}
-        icon={index===0?<HandCoins/>:index===1?<Check/>:index===2?<ShieldCheck/>:<Headphones/>}
-        title={goalTitles[index]}
-        text={goal}
+        key={goal.title}
+        icon={goal.icon}
+        title={goal.title}
+        text={goal.text}
       />)}</div>
     </section>
   </div>
@@ -209,7 +195,11 @@ type PredictionResult = {
   approved?: boolean
   risk?: number
   interpretation?: string
+  model_estimate?: number
   suggested_amount?: number
+  min_loan?: number
+  max_loan?: number
+  adjusted?: 'capped' | 'raised' | null
   mae?: number
   r2?: number
   decision?: string
@@ -340,7 +330,7 @@ const defaultAlgorithmValues: Record<string, string> = {
   loan_amount: '50000',
   late_payments: '1',
   payment_history: 'Good',
-  message: 'Hi, I made a late payment and need help.',
+  message: 'My payment is due tomorrow, can I pay late?',
 }
 
 const algorithmScenarios: Record<string, string> = {
@@ -409,7 +399,7 @@ function EvaluationSummary({slug,metrics,error}:{slug:string,metrics:MetricsResp
   if(!modelMetrics)return <div className="evaluation-unavailable" role={error?'alert':'status'}>{error?'Evaluation metrics unavailable.':'Loading evaluation metrics…'}</div>
 
   if(slug==='loan-amount'&&typeof modelMetrics.mae==='number'){
-    return <div className="evaluation-summary">On synthetic test borrowers, it was off by about ₱{Math.round(modelMetrics.mae).toLocaleString()} on average.</div>
+    return <div className="evaluation-summary">On synthetic test borrowers, it was off by about {formatPeso(modelMetrics.mae)} on average.</div>
   }
   if(slug==='decision'&&typeof modelMetrics.accuracy==='number'&&typeof modelMetrics.risky_wrongly_approved==='number'){
     return <div className="evaluation-summary">On synthetic test borrowers, right for about {Math.round(modelMetrics.accuracy*100)} of every 100; wrongly approved {modelMetrics.risky_wrongly_approved} risky ones.</div>
@@ -567,13 +557,16 @@ function Algorithm({slug}:{slug:string}) {
 
   function updateInput(name: string, value: string) {
     const nextValues={...values,[name]:value}
-    if(fieldErrors[name]){
-      setFieldErrors(current=>{
-        const next={...current}
-        delete next[name]
-        return next
-      })
-    }
+    setFieldErrors(current=>{
+      const next={...current}
+      if(name==='loan_amount'&&value.trim()&&
+        (Number(value)<1_000||Number(value)>60_000)){
+        next[name]='Loan amount must be between PHP 1,000 and PHP 60,000.'
+      }else if(name==='loan_amount'&&!value.trim()){
+        next[name]='Enter a value.'
+      }else delete next[name]
+      return next
+    })
     const current=tabCache.current.get(model.slug)
     const resultIsStale=Boolean(current?.result&&current.resultValues&&fields.some(fieldName=>current.resultValues?.[fieldName]!==nextValues[fieldName]))
     tabCache.current.set(model.slug,{
@@ -605,6 +598,9 @@ function Algorithm({slug}:{slug:string}) {
       }
       const value=values[name].trim()
       if(!value)nextErrors[name]='Enter a value.'
+      else if(name==='loan_amount'&&(Number(value)<1_000||Number(value)>60_000)){
+        nextErrors[name]='Loan amount must be between PHP 1,000 and PHP 60,000.'
+      }
       else if(Number(value)<0)nextErrors[name]='Value cannot be negative.'
     }
     setFieldErrors(nextErrors)
@@ -691,10 +687,11 @@ function Algorithm({slug}:{slug:string}) {
                   :name==='late_payments'?'payments':'₱'
                 return <label key={name} className="model-form-field"><span>{field.label}</span>
                   <div className="input-with-unit">
-                    <input type="number" inputMode="numeric" min={0} step="any"
+                    <input type="number" inputMode="numeric" min={name==='loan_amount'?1_000:0} max={name==='loan_amount'?60_000:undefined} step="any"
                       value={values[name]} onChange={event=>updateInput(name,event.target.value)}/>
                     <small>{unit}</small>
                   </div>
+                  {name==='loan_amount'&&<small className="field-hint">Up to {formatPeso(60_000)}</small>}
                   {fieldErrors[name]&&<small className="field-error" role="alert">{fieldErrors[name]}</small>}
                 </label>
               })())}
@@ -716,8 +713,18 @@ function Algorithm({slug}:{slug:string}) {
           {result&&!error&&<div className={`ml-result${stale?' stale-result':''}`}>
                 {stale&&<p className="stale-note">Inputs changed. Press Run model.</p>}
                 {model.slug==='loan-amount'&&<>
-                  {typeof result.suggested_amount==='number'
-                    ? <div className="big-result">₱{result.suggested_amount.toLocaleString()}<small>Suggested loan amount</small><small className="estimate-note">An estimate, not a guarantee.</small></div>
+                  {typeof result.suggested_amount==='number'&&typeof result.model_estimate==='number'&&typeof result.min_loan==='number'&&typeof result.max_loan==='number'
+                    ? <>
+                      <div className="regression-details">
+                        <div><span>Model estimate</span><b>{formatPeso(result.model_estimate)}</b></div>
+                        <div><span>Minimum loan</span><b>{formatPeso(result.min_loan)}</b></div>
+                        <div><span>Maximum loan</span><b>{formatPeso(result.max_loan)}</b></div>
+                      </div>
+                      <div className="big-result">{formatPeso(result.suggested_amount)}<small>Suggested loan amount</small><small className="estimate-note">An estimate, not a guarantee.</small>
+                        {result.adjusted==='capped'&&<small className="cap-note">Capped at PesoLend's maximum loan.</small>}
+                        {result.adjusted==='raised'&&<small className="cap-note">Raised to PesoLend's minimum loan. These details are outside the training data range.</small>}
+                      </div>
+                    </>
                     : <p className="api-error">The API did not return a suggested amount.</p>}
                 </>}
                 {model.slug==='decision'&&<>
@@ -732,7 +739,7 @@ function Algorithm({slug}:{slug:string}) {
                 {model.slug==='similar-borrowers'&&<>
                   <h3>{result.paid_back_count ?? 'Unavailable'} of {result.k ?? 'Unavailable'} closest borrowers paid back</h3>
                   <div className="table-scroll"><table><thead><tr>{['Borrower ID','Income','Loan amount','Credit score','Outcome'].map(column=><th key={column}>{column}</th>)}</tr></thead>
-                    <tbody>{(result.neighbors??[]).map(neighbor=><tr key={neighbor.borrower_id}><td>{neighbor.borrower_id}</td><td>₱{neighbor.income.toLocaleString()}</td><td>₱{neighbor.loan_amount.toLocaleString()}</td><td>{neighbor.credit_score}</td><td>{neighbor.outcome}</td></tr>)}</tbody>
+                    <tbody>{(result.neighbors??[]).map(neighbor=><tr key={neighbor.borrower_id}><td>{neighbor.borrower_id}</td><td>{formatPeso(neighbor.income)}</td><td>{formatPeso(neighbor.loan_amount)}</td><td>{neighbor.credit_score}</td><td>{neighbor.outcome}</td></tr>)}</tbody>
                   </table></div>
                   <h4>Accuracy by K</h4>
                   <ResponsiveContainer width="100%" height={190}><BarChart data={accuracyData}><CartesianGrid strokeDasharray="3 3" vertical={false}/><XAxis dataKey="k"/><YAxis domain={[0,100]} unit="%"/><Tooltip formatter={value=>`${Number(value).toFixed(1)}%`}/><Bar dataKey="accuracy" name="Accuracy" fill="#12664a" radius={[5,5,0,0]}/></BarChart></ResponsiveContainer>
@@ -752,7 +759,7 @@ function Algorithm({slug}:{slug:string}) {
                   </tbody></table></div>
                   {chartGrid&&<><h4>Risk regions and test borrowers</h4><div className="risk-chart">
                     <ResponsiveContainer width="100%" height={330}><ScatterChart margin={{top:10,right:20,bottom:25,left:10}}>
-                      <CartesianGrid strokeDasharray="3 3"/><XAxis type="number" dataKey="x" name="Income" domain={[0,100000]} ticks={[20000,40000,60000,80000,100000]} tickFormatter={value=>`₱${Math.round(Number(value)/1000)}k`} label={{value:'Income',position:'insideBottom',offset:-15}}/><YAxis type="number" dataKey="y" name="Credit score" domain={['dataMin','dataMax']} label={{value:'Credit score',angle:-90,position:'insideLeft'}}/><ZAxis type="number" dataKey="z" range={[34,34]}/><Tooltip cursor={{strokeDasharray:'3 3'}}/>
+                      <CartesianGrid strokeDasharray="3 3"/><XAxis type="number" dataKey="x" name="Income" domain={[0,100000]} ticks={[20000,40000,60000,80000,100000]} tickFormatter={value=>formatPeso(Number(value))} label={{value:'Income',position:'insideBottom',offset:-15}}/><YAxis type="number" dataKey="y" name="Credit score" domain={['dataMin','dataMax']} label={{value:'Credit score',angle:-90,position:'insideLeft'}}/><ZAxis type="number" dataKey="z" range={[34,34]}/><Tooltip cursor={{strokeDasharray:'3 3'}}/>
                       <Scatter name="Predicted paid back region" data={paidRegion} fill="#bcebd5" shape="square" opacity={0.45}/>
                       <Scatter name="Predicted risky region" data={unpaidRegion} fill="#f3c6bd" shape="square" opacity={0.45}/>
                       <Scatter name="Actually paid back" data={riskSamples.filter(point=>point.actual===1)} fill="#12664a"/>
@@ -814,7 +821,7 @@ function DataPage(){
   const classBalance=Object.entries(dataset?.class_balance??{}).map(([name,value])=>({n:name,v:value}))
   const classColors=['#12664a','#f2b774','#83bca0','#e29a82']
 
-  return <div className="page section"><PageIntro kicker="OPEN DATA" title="See what models learn" text="Synthetic data generated for this project. Every column explained below."/>
+  return <div className="page section"><PageIntro kicker="OPEN DATA" title="See what models learn" text="PesoLend uses borrower information and customer messages to show how machine learning can support its services. The datasets are synthetically generated for educational purposes and contain no actual customer records."/>
     <div className="tabs"><button className={tab==='borrowers'?'active':''} onClick={()=>{setTab('borrowers');setQuery('')}}>Borrower data</button><button className={tab==='messages'?'active':''} onClick={()=>{setTab('messages');setQuery('')}}>Customer messages</button></div>
     <div className="data-stats"><div><Database/><span><small>Source</small><b>{dataset?.source??(loading?'Loading…':'Unavailable')}</b></span></div><div><BarChart3/><span><small>Rows</small><b>{dataset?`${dataset.total_rows.toLocaleString()} records`:loading?'Loading…':'Unavailable'}</b></span></div><div><GitBranch/><span><small>Columns</small><b>{dataset?`${dataset.columns.length} columns`:loading?'Loading…':'Unavailable'}</b></span></div><button className="button secondary">Download CSV</button></div>
     <section className="panel table-panel"><div className="table-head"><div><h2>Data preview</h2><p>{dataset?`First ${dataset.rows.length} rows`:loading?'Loading preview…':'Preview unavailable'}</p></div><label className="search"><Search/><input placeholder="Search rows" value={query} onChange={e=>setQuery(e.target.value)}/></label></div>
@@ -928,7 +935,7 @@ function PortalShellContent({role}:{role:'borrower'|'officer'}){
 function BorrowerDashboard(){
   const profile=useOutletContext<MeResponse|null>()
   const loan=profile?.active_loan
-  const money=(amount:number)=>`₱${amount.toLocaleString()}`
+  const money=formatPeso
   const dueDate=loan?new Date(`${loan.next_due_date}T00:00:00`).toLocaleDateString(undefined,{month:'long',day:'numeric'}):''
   const paidPercent=loan?Math.round(loan.paid_count/loan.total_count*100):0
   return <div className="dashboard"><div className="dash-head"><div><span className="kicker">OVERVIEW</span><h1>{profile?`Good morning, ${profile.name.split(' ')[0]}`:'Your dashboard'}</h1></div><div className="dashboard-badges"><span className="status neutral">Demo account</span><span className="status success"><BadgeCheck/> Identity verified</span></div></div>
@@ -948,28 +955,28 @@ function Apply(){
   const next=()=>{if(step===3){setChecking(true);setTimeout(()=>{setChecking(false);setStep(4)},2200)}else setStep(step+1)}
   return <div className="dashboard apply-page"><div className="dash-head"><div><span className="kicker">NEW APPLICATION</span><h1>Apply for a loan</h1></div><span className="secure"><LockKeyhole/> Secure form</span></div><div className="stepper">{['Amount','Finances','Review','Result'].map((s,i)=><div className={step>=i+1?'active':''} key={s}><b>{step>i+1?<Check/>:i+1}</b><span>{s}</span></div>)}</div>
     {checking?<div className="checking panel"><span className="scan"><BrainCircuit/></span><h2>Checking your application</h2><p>Six models are reviewing your details.</p><div className="loading-line"><i/></div></div>:step<4?<section className="panel application-card">
-      {step===1&&<><span className="kicker">STEP 1 OF 3</span><h2>How much do you need?</h2><div className="amount-display">₱{amount.toLocaleString()}</div><input type="range" min="5000" max="48000" step="1000" value={amount} onChange={e=>setAmount(+e.target.value)}/><div className="range-labels"><span>₱5,000</span><span>₱48,000 limit</span></div><span className="field-label">Choose a term</span><div className="term-grid">{[3,6,12].map(n=><button className={term===n?'selected':''} onClick={()=>setTerm(n)} key={n}><b>{n}</b> months<small>₱{Math.ceil(amount/n*1.035).toLocaleString()}/mo</small></button>)}</div><div className="safe-chip"><ShieldCheck/><span><b>Suggested loan amount</b>Up to ₱36,000</span></div></>}
+      {step===1&&<><span className="kicker">STEP 1 OF 3</span><h2>How much do you need?</h2><div className="amount-display">{formatPeso(amount)}</div><input type="range" min="1000" max="60000" step="1000" value={amount} onChange={e=>setAmount(+e.target.value)}/><div className="range-labels"><span>{formatPeso(1_000)}</span><span>Up to {formatPeso(60_000)}</span></div><span className="field-label">Choose a term</span><div className="term-grid">{[3,6,12].map(n=><button className={term===n?'selected':''} onClick={()=>setTerm(n)} key={n}><b>{n}</b> months<small>{formatPeso(Math.ceil(amount/n*1.035))}/mo</small></button>)}</div><div className="safe-chip"><ShieldCheck/><span><b>Maximum loan amount</b>Up to {formatPeso(60_000)}</span></div></>}
       {step===2&&<><span className="kicker">STEP 2 OF 3</span><h2>Your finances</h2><div className="form-grid">{['Monthly income','Monthly expenses','Existing debts','Credit score'].map((x,i)=><label key={x}>{x}<input defaultValue={['42,000','18,500','3,000','712'][i]}/></label>)}</div><label>Payment history<select><option>Always on time</option><option>1–2 late payments</option></select></label></>}
-      {step===3&&<><span className="kicker">STEP 3 OF 3</span><h2>Review details</h2><div className="review-box">{[['Loan amount',`₱${amount.toLocaleString()}`],['Term',`${term} months`],['Monthly income','₱42,000'],['Estimated payment',`₱${Math.ceil(amount/term*1.035).toLocaleString()}`]].map(r=><div key={r[0]}><span>{r[0]}</span><b>{r[1]}</b></div>)}</div><label className="consent"><input type="checkbox" defaultChecked/> I agree to a fair, automated assessment.</label></>}
+      {step===3&&<><span className="kicker">STEP 3 OF 3</span><h2>Review details</h2><div className="review-box">{[['Loan amount',formatPeso(amount)],['Term',`${term} months`],['Monthly income',formatPeso(42_000)],['Estimated payment',formatPeso(Math.ceil(amount/term*1.035))]].map(r=><div key={r[0]}><span>{r[0]}</span><b>{r[1]}</b></div>)}</div><label className="consent"><input type="checkbox" defaultChecked/> I agree to a fair, automated assessment.</label></>}
       <div className="form-actions">{step>1&&<button className="button secondary" onClick={()=>setStep(step-1)}>Back</button>}<button className="button" onClick={next}>{step===3?'Submit application':'Continue'} <ArrowRight/></button></div>
-    </section>:<section className="panel approval"><span className="approval-icon"><Check/></span><span className="kicker">APPLICATION APPROVED</span><h1>You’re approved</h1><p>Great things start with one application.</p><div className="offer"><div><span>Loan amount</span><b>₱{amount.toLocaleString()}</b></div><div><span>Monthly payment</span><b>₱{Math.ceil(amount/term*1.035).toLocaleString()}</b></div><div><span>Term</span><b>{term} months</b></div><div><span>Interest</span><b>3.5%</b></div></div><button className="button">Accept offer</button><button className="button secondary">Decline</button></section>}
+    </section>:<section className="panel approval"><span className="approval-icon"><Check/></span><span className="kicker">APPLICATION APPROVED</span><h1>You’re approved</h1><p>Great things start with one application.</p><div className="offer"><div><span>Loan amount</span><b>{formatPeso(amount)}</b></div><div><span>Monthly payment</span><b>{formatPeso(Math.ceil(amount/term*1.035))}</b></div><div><span>Term</span><b>{term} months</b></div><div><span>Interest</span><b>3.5%</b></div></div><button className="button">Accept offer</button><button className="button secondary">Decline</button></section>}
   </div>
 }
 
 function Placeholder({title,icon}:{title:string,icon:ReactNode}){return <div className="dashboard"><div className="dash-head"><div><span className="kicker">PESOLEND</span><h1>{title}</h1></div></div><div className="panel placeholder">{icon}<h2>{title}</h2><p>Your records and actions appear here.</p><button className="button">View details</button></div></div>}
 
-const applicants=[['Maria Santos','₱30,000','Today, 9:42','Review','Low'],['John Reyes','₱75,000','Today, 9:16','New','High'],['Ana Cruz','₱24,000','Yesterday','Review','Low'],['Paolo Lim','₱50,000','Yesterday','More info','Medium'],['Nina Garcia','₱18,000','Mar 16','Approved','Low']]
+const applicants=[['Maria Santos',30_000,'Today, 9:42','Review','Low'],['John Reyes',75_000,'Today, 9:16','New','High'],['Ana Cruz',24_000,'Yesterday','Review','Low'],['Paolo Lim',50_000,'Yesterday','More info','Medium'],['Nina Garcia',18_000,'Mar 16','Approved','Low']] as const
 function Applications(){
   const [query,setQuery]=useState('')
   return <div className="dashboard"><div className="dash-head"><div><span className="kicker">LOAN OPERATIONS</span><h1>Applications</h1></div><button className="button secondary"><Upload/> Export</button></div>
     <div className="officer-stats"><div><span>New today</span><b>24</b><small>+8% this week</small></div><div><span>Needs review</span><b>11</b><small>4 high risk</small></div><div><span>Approved</span><b>86%</b><small>Last 30 days</small></div><div><span>Average time</span><b>3.2m</b><small>Decision speed</small></div></div>
-    <section className="panel table-panel"><div className="table-head"><div className="filter-row"><button className="active">All</button><button>New</button><button>Review</button><button>Approved</button></div><label className="search"><Search/><input placeholder="Search applicants" value={query} onChange={e=>setQuery(e.target.value)}/></label></div><div className="table-scroll"><table><thead><tr>{['Applicant','Amount','Submitted','Status','Risk',''].map(x=><th key={x}>{x}</th>)}</tr></thead><tbody>{applicants.filter(a=>a.join('').toLowerCase().includes(query.toLowerCase())).map(a=><tr key={a[0]}><td><span className="person">{a[0].split(' ').map(x=>x[0]).join('')}</span><b>{a[0]}</b></td><td><b>{a[1]}</b></td><td>{a[2]}</td><td><span className="status neutral">{a[3]}</span></td><td><span className={`risk-dot ${a[4].toLowerCase()}`}/>{a[4]}</td><td><button className="table-action">View <ChevronRight/></button></td></tr>)}</tbody></table></div></section>
+    <section className="panel table-panel"><div className="table-head"><div className="filter-row"><button className="active">All</button><button>New</button><button>Review</button><button>Approved</button></div><label className="search"><Search/><input placeholder="Search applicants" value={query} onChange={e=>setQuery(e.target.value)}/></label></div><div className="table-scroll"><table><thead><tr>{['Applicant','Amount','Submitted','Status','Risk',''].map(x=><th key={x}>{x}</th>)}</tr></thead><tbody>{applicants.filter(a=>a.join('').toLowerCase().includes(query.toLowerCase())).map(a=><tr key={a[0]}><td><span className="person">{a[0].split(' ').map(x=>x[0]).join('')}</span><b>{a[0]}</b></td><td><b>{formatPeso(a[1])}</b></td><td>{a[2]}</td><td><span className="status neutral">{a[3]}</span></td><td><span className={`risk-dot ${a[4].toLowerCase()}`}/>{a[4]}</td><td><button className="table-action">View <ChevronRight/></button></td></tr>)}</tbody></table></div></section>
   </div>
 }
 
 function Metrics(){
   const data=[{m:'Tree',accuracy:89,recall:84},{m:'KNN',accuracy:86,recall:81},{m:'SVM',accuracy:91,recall:89},{m:'Neural net',accuracy:93,recall:92}]
-  return <div className="dashboard"><div className="dash-head"><div><span className="kicker">MODEL HEALTH</span><h1>Metrics</h1></div><span className="status success">All models online</span></div><div className="officer-stats"><div><span>Accuracy</span><b>91.4%</b><small>+1.2% this month</small></div><div><span>Risk recall</span><b>88.7%</b><small>Safer approvals</small></div><div><span>Amount MAE</span><b>₱2,140</b><small>Linear regression</small></div><div><span>R² score</span><b>0.87</b><small>Strong fit</small></div></div><section className="panel metric-chart"><div><span className="kicker">MODEL COMPARISON</span><h2>Accuracy and recall</h2></div><ResponsiveContainer width="100%" height={310}><BarChart data={data}><CartesianGrid strokeDasharray="3 3" vertical={false}/><XAxis dataKey="m"/><YAxis domain={[70,100]}/><Tooltip/><Bar dataKey="accuracy" fill="#12664a" radius={[5,5,0,0]}/><Bar dataKey="recall" fill="#8bd5b5" radius={[5,5,0,0]}/></BarChart></ResponsiveContainer></section></div>
+  return <div className="dashboard"><div className="dash-head"><div><span className="kicker">MODEL HEALTH</span><h1>Metrics</h1></div><span className="status success">All models online</span></div><div className="officer-stats"><div><span>Accuracy</span><b>91.4%</b><small>+1.2% this month</small></div><div><span>Risk recall</span><b>88.7%</b><small>Safer approvals</small></div><div><span>Amount MAE</span><b>{formatPeso(2_140)}</b><small>Linear regression</small></div><div><span>R² score</span><b>0.87</b><small>Strong fit</small></div></div><section className="panel metric-chart"><div><span className="kicker">MODEL COMPARISON</span><h2>Accuracy and recall</h2></div><ResponsiveContainer width="100%" height={310}><BarChart data={data}><CartesianGrid strokeDasharray="3 3" vertical={false}/><XAxis dataKey="m"/><YAxis domain={[70,100]}/><Tooltip/><Bar dataKey="accuracy" fill="#12664a" radius={[5,5,0,0]}/><Bar dataKey="recall" fill="#8bd5b5" radius={[5,5,0,0]}/></BarChart></ResponsiveContainer></section></div>
 }
 
 function NotFound(){return <div className="page section"><PageIntro kicker="404" title="Page not found" text="Let’s get you back on track."/><Link className="button" to="/">Go home</Link></div>}

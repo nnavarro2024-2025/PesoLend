@@ -283,6 +283,45 @@
   font-weight: 500;
 }
 
+.field-hint {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.regression-details {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.regression-details > div {
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fbfdfb;
+  padding: 12px;
+}
+
+.regression-details span {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.regression-details b {
+  color: var(--forest);
+  font-size: 18px;
+}
+
+.cap-note {
+  display: block;
+  margin-top: 6px;
+  color: var(--forest);
+  font-size: 14px;
+  font-weight: 600;
+}
+
 .form-panel .button {
   margin-top: 20px;
 }
@@ -410,6 +449,10 @@
 
   .ml-model-heading h1 {
     font-size: 32px;
+  }
+
+  .regression-details {
+    grid-template-columns: 1fr;
   }
 }
 

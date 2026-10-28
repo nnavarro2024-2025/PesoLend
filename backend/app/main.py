@@ -22,6 +22,8 @@ from . import database
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 DATA_DIR = BACKEND_DIR / "data"
 MODEL_DIR = BACKEND_DIR / "models"
+MAX_LOAN_AMOUNT = 60_000
+MIN_LOAN_AMOUNT = 1_000
 
 BORROWER_FEATURES = [
     "income",
@@ -78,13 +80,20 @@ class PredictionRequest(BaseModel):
     credit_score: int | None = Field(default=None, ge=300, le=850)
     years_of_work: float | None = Field(default=None, ge=0, le=80)
     debts: float | None = Field(default=None, ge=0, le=10_000_000)
-    loan_amount: float | None = Field(default=None, gt=0, le=10_000_000)
-    amount: float | None = Field(default=None, gt=0, le=10_000_000)
+    loan_amount: float | None = None
+    amount: float | None = None
     late_payments: int | None = Field(default=None, ge=0, le=100)
     payment_history: str | None = Field(default=None, max_length=64)
     message: str | None = Field(default=None, min_length=1, max_length=2_000)
     term: int | None = Field(default=None, ge=1, le=60)
     applicant_name: str | None = Field(default=None, min_length=1, max_length=100)
+
+    @field_validator("loan_amount", "amount")
+    @classmethod
+    def validate_loan_amount(cls, value: float | None) -> float | None:
+        if value is not None and not MIN_LOAN_AMOUNT <= value <= MAX_LOAN_AMOUNT:
+            raise ValueError("Loan amount must be between PHP 1,000 and PHP 60,000.")
+        return value
 
     @field_validator("payment_history")
     @classmethod
@@ -198,9 +207,15 @@ def _predict_bundle(state: Any, payload: PredictionRequest | dict[str, Any]) -> 
         [{feature: profile[feature] for feature in REGRESSION_FEATURES}],
         columns=REGRESSION_FEATURES,
     )
+    model_estimate = float(state.models["loan-amount"].predict(regression_row)[0])
     suggested_amount = max(
-        0.0,
-        float(state.models["loan-amount"].predict(regression_row)[0]),
+        MIN_LOAN_AMOUNT,
+        min(model_estimate, MAX_LOAN_AMOUNT),
+    )
+    adjusted = (
+        "capped" if model_estimate > MAX_LOAN_AMOUNT
+        else "raised" if model_estimate < MIN_LOAN_AMOUNT
+        else None
     )
 
     tree_model = state.models["decision"]
@@ -250,7 +265,7 @@ def _predict_bundle(state: Any, payload: PredictionRequest | dict[str, Any]) -> 
     risk_percent = round(default_probability * 100, 1)
 
     common = {
-        "amount": int(round(suggested_amount)),
+        "amount": suggested_amount,
         "approved": approved,
         "risk": risk_percent,
         "model": None,
@@ -260,7 +275,11 @@ def _predict_bundle(state: Any, payload: PredictionRequest | dict[str, Any]) -> 
         "borrower_row": borrower_row,
         "regression_row": regression_row,
         "common": common,
-        "suggested_amount": int(round(suggested_amount)),
+        "model_estimate": model_estimate,
+        "suggested_amount": suggested_amount,
+        "min_loan": MIN_LOAN_AMOUNT,
+        "max_loan": MAX_LOAN_AMOUNT,
+        "adjusted": adjusted,
         "decision": "Approved" if approved else "Rejected",
         "approved": approved,
         "rules_path": rules_path,
@@ -276,9 +295,21 @@ def _predict_bundle(state: Any, payload: PredictionRequest | dict[str, Any]) -> 
 
 def _interpretation(slug: str, result: dict[str, Any]) -> str:
     if slug == "loan-amount":
+        if result["adjusted"] == "capped":
+            return (
+                f"The regression model estimates PHP {result['model_estimate']:,.0f}. "
+                f"PesoLend's maximum loan is PHP {MAX_LOAN_AMOUNT:,}, so the "
+                f"suggested amount is PHP {result['suggested_amount']:,.0f}."
+            )
+        if result["adjusted"] == "raised":
+            return (
+                f"The regression model estimates PHP {result['model_estimate']:,.0f}, "
+                f"which is below PesoLend's minimum loan of PHP {MIN_LOAN_AMOUNT:,}, "
+                f"so the suggested amount is PHP {result['suggested_amount']:,.0f}. "
+                "This applicant's details are outside the range the model was trained on."
+            )
         return (
-            f"The regression model suggests PHP {result['suggested_amount']:,} "
-            f"(test MAE PHP {result['mae']:,.0f})."
+            f"The regression model suggests PHP {result['suggested_amount']:,.0f}."
         )
     if slug == "decision":
         return (
@@ -407,7 +438,11 @@ def _prediction_response(
     if slug == "loan-amount":
         metrics = _get_model_metrics(state, slug)
         response |= {
+            "model_estimate": result["model_estimate"],
             "suggested_amount": result["suggested_amount"],
+            "min_loan": MIN_LOAN_AMOUNT,
+            "max_loan": MAX_LOAN_AMOUNT,
+            "adjusted": result["adjusted"],
             "mae": metrics["mae"],
             "r2": metrics["r2"],
         }
@@ -493,8 +528,16 @@ def _application_record(
 ) -> dict[str, Any]:
     result = _predict_bundle(state, payload)
     profile = result["profile"]
-    requested_amount = int(
-        round(profile.get("amount", profile.get("loan_amount", DEFAULT_PROFILE["loan_amount"])))
+    requested_amount = max(
+        MIN_LOAN_AMOUNT,
+        min(
+            int(round(profile.get("amount", profile.get("loan_amount", DEFAULT_PROFILE["loan_amount"])))),
+            MAX_LOAN_AMOUNT,
+        ),
+    )
+    suggested_amount = max(
+        MIN_LOAN_AMOUNT,
+        min(result["suggested_amount"], MAX_LOAN_AMOUNT),
     )
     interest_rate = round(3.0 + result["default_probability"] * 15.0, 2)
     monthly_payment = round(
@@ -516,7 +559,7 @@ def _application_record(
         "reasons": reasons,
         "similar_borrowers": result["neighbors"],
         "paid_back_count": result["paid_back_count"],
-        "suggested_amount": result["suggested_amount"],
+        "suggested_amount": suggested_amount,
         "interest_rate": interest_rate,
         "monthly_payment": monthly_payment,
         "risk_label": result["risk_label"],
@@ -526,7 +569,7 @@ def _application_record(
         "interpretation": (
             f"The models recommend {result['decision'].lower()}; estimated default "
             f"probability is {result['default_probability']:.0%}, and the suggested "
-            f"safe amount is PHP {result['suggested_amount']:,}."
+            f"amount is PHP {suggested_amount:,.0f}."
         ),
     }
     message = profile.get("message")
@@ -604,7 +647,12 @@ async def lifespan(app: FastAPI):
     else:
         should_seed_applications = True
 
-    seed_indices = seed_train_indices[:10] if should_seed_applications else []
+    eligible_seed_indices = [
+        int(index)
+        for index in seed_train_indices
+        if float(app.state.borrowers.iloc[int(index)]["loan_amount"]) <= MAX_LOAN_AMOUNT
+    ]
+    seed_indices = eligible_seed_indices[:10] if should_seed_applications else []
     for seed_number, index in enumerate(seed_indices, start=1):
         row = app.state.borrowers.iloc[int(index)]
         payload = {
@@ -696,23 +744,20 @@ def get_me(authorization: str | None = Header(default=None)) -> dict[str, Any]:
     if account is None:
         raise HTTPException(status_code=401, detail="The account for this token was not found.")
     profile, _ = _borrower_values({})
+    model_loan_limit = state.models["loan-amount"].predict(
+        pd.DataFrame(
+            [
+                {
+                    feature: profile[feature]
+                    for feature in REGRESSION_FEATURES
+                }
+            ],
+            columns=REGRESSION_FEATURES,
+        )
+    )[0]
     loan_limit = max(
-        0,
-        int(
-            round(
-                state.models["loan-amount"].predict(
-                    pd.DataFrame(
-                        [
-                            {
-                                feature: profile[feature]
-                                for feature in REGRESSION_FEATURES
-                            }
-                        ],
-                        columns=REGRESSION_FEATURES,
-                    )
-                )[0]
-            )
-        ),
+        MIN_LOAN_AMOUNT,
+        min(int(round(model_loan_limit)), MAX_LOAN_AMOUNT),
     )
     return {
         "name": account["name"],
@@ -740,14 +785,31 @@ def submit_application(
     return record
 
 
+def _cap_application_amounts(
+    records: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    capped_records = []
+    for record in records:
+        capped_record = record.copy()
+        for field in ("amount", "suggested_amount"):
+            value = capped_record.get(field)
+            if isinstance(value, (int, float)):
+                capped_record[field] = max(
+                    MIN_LOAN_AMOUNT,
+                    min(value, MAX_LOAN_AMOUNT),
+                )
+        capped_records.append(capped_record)
+    return capped_records
+
+
 @app.get("/api/officer/applications")
 def list_applications() -> list[dict[str, Any]]:
     if app.state.db_available:
         try:
-            return database.list_applications()
+            return _cap_application_amounts(database.list_applications())
         except SQLAlchemyError as error:
             _use_memory_database(error)
-    return app.state.applications
+    return _cap_application_amounts(app.state.applications)
 
 
 @app.get("/api/datasets/{name}")
