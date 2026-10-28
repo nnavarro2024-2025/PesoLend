@@ -5,7 +5,7 @@ from typing import Any
 import joblib
 import numpy as np
 import pandas as pd
-from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS, TfidfVectorizer
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import (
     accuracy_score,
@@ -53,6 +53,26 @@ PAYMENT_HISTORY_ENCODING = {
     "Good": 2,
     "Excellent": 3,
 }
+MESSAGE_STOP_WORDS = sorted(
+    set(ENGLISH_STOP_WORDS)
+    | {
+        "po",
+        "ako",
+        "ang",
+        "ng",
+        "sa",
+        "na",
+        "ko",
+        "mo",
+        "ka",
+        "ba",
+        "lang",
+        "naman",
+        "pa",
+        "ito",
+        "yung",
+    }
+)
 
 
 def load_borrowers() -> pd.DataFrame:
@@ -204,7 +224,14 @@ def main() -> None:
     )
     message_model = Pipeline(
         [
-            ("tfidf", TfidfVectorizer()),
+            (
+                "tfidf",
+                TfidfVectorizer(
+                    stop_words=MESSAGE_STOP_WORDS,
+                    ngram_range=(1, 2),
+                    min_df=1,
+                ),
+            ),
             ("classifier", MultinomialNB()),
         ]
     )
@@ -220,6 +247,12 @@ def main() -> None:
         ),
     )
     joblib.dump(message_model, MODEL_DIR / "message_classifier.joblib")
+    print(f"Naive Bayes accuracy: {message_model_metrics['accuracy']:.4f}")
+    print(
+        "Naive Bayes confusion matrix "
+        f"(labels {message_model_metrics['confusion_matrix_labels']}):"
+    )
+    print(json.dumps(message_model_metrics["confusion_matrix"]))
 
     svm_model = Pipeline(
         [

@@ -74,7 +74,7 @@
       }
     },
     "classify-message": {
-      "accuracy": 0.85,
+      "accuracy": 0.875,
       "majority_class_baseline_accuracy": 0.25,
       "recall_on_risky_borrowers": null,
       "mae": null,
@@ -82,9 +82,9 @@
       "confusion_matrix": [
         [
           7,
-          2,
+          3,
           0,
-          1
+          0
         ],
         [
           0,
@@ -93,16 +93,16 @@
           0
         ],
         [
-          1,
           0,
+          1,
           9,
           0
         ],
         [
-          1,
           0,
           1,
-          8
+          0,
+          9
         ]
       ],
       "confusion_matrix_labels": [

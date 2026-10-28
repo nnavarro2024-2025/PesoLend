@@ -1,0 +1,157 @@
+.company-page {
+  width: 100%;
+  max-width: 944px;
+  padding: 64px 32px 88px;
+}
+
+.company-title {
+  margin: 0 0 28px;
+  color: var(--forest);
+  font-size: 46px;
+  line-height: 1.1;
+  text-align: center;
+}
+
+.company-card {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 17px;
+  background: #fff;
+  box-shadow: 0 8px 25px rgba(11, 59, 47, 0.04);
+  text-align: center;
+}
+
+.company-overview {
+  padding: 32px;
+}
+
+.company-overview p {
+  color: var(--muted);
+  font-size: 17px;
+  line-height: 1.65;
+}
+
+.company-principles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 24px;
+  margin-top: 24px;
+}
+
+.company-principles .company-card,
+.company-needs .company-card,
+.company-goals .company-card {
+  display: flex;
+  min-height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 26px 22px;
+}
+
+.company-principles .company-card {
+  min-height: 210px;
+}
+
+.company-card h3 {
+  margin: 16px 0 8px;
+  color: var(--forest);
+  font-size: 19px;
+}
+
+.company-card p {
+  max-width: 34em;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.company-section {
+  margin-top: 40px;
+}
+
+.company-section-heading {
+  margin: 0 0 24px;
+  color: var(--forest);
+  font-size: 30px;
+  text-align: center;
+}
+
+.company-needs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.company-needs .company-card {
+  min-height: 205px;
+}
+
+.company-goals {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.company-goals .company-card {
+  min-height: 190px;
+  padding-inline: 16px;
+}
+
+.company-goals .company-card h3 {
+  font-size: 16px;
+}
+
+@media (max-width: 600px) {
+  .company-page {
+    padding: 50px 18px 64px;
+  }
+
+  .company-title {
+    margin-bottom: 22px;
+    font-size: 36px;
+  }
+
+  .company-overview {
+    padding: 24px 20px;
+  }
+
+  .company-principles {
+    grid-template-columns: 1fr;
+    gap: 18px;
+    margin-top: 24px;
+  }
+
+  .company-principles .company-card,
+  .company-needs .company-card {
+    min-height: 0;
+  }
+
+  .company-section {
+    margin-top: 34px;
+  }
+
+  .company-section-heading {
+    margin-bottom: 20px;
+    font-size: 26px;
+  }
+
+  .company-needs {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .company-goals {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .company-goals .company-card {
+    min-height: 175px;
+    padding: 20px 12px;
+  }
+
+  .company-goals .company-card h3 {
+    font-size: 15px;
+  }
+}

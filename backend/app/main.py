@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 import json
+import logging
 from pathlib import Path
 from typing import Any, Literal
 from uuid import uuid4
@@ -8,11 +9,14 @@ from uuid import uuid4
 import joblib
 import numpy as np
 import pandas as pd
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field, field_validator
 from sklearn.model_selection import train_test_split
+from sqlalchemy.exc import SQLAlchemyError
+
+from . import database
 
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
@@ -59,6 +63,7 @@ MODEL_FILES = {
     "risk-label": "svm.joblib",
     "default-probability": "mlp.joblib",
 }
+LOGGER = logging.getLogger("pesolend")
 
 
 class LoginRequest(BaseModel):
@@ -174,10 +179,16 @@ def _top_words(model: Any, count: int = 5) -> dict[str, list[str]]:
     vectorizer = model.named_steps["tfidf"]
     classifier = model.named_steps["classifier"]
     words = vectorizer.get_feature_names_out()
+    stop_words = vectorizer.get_stop_words() or set()
     result: dict[str, list[str]] = {}
     for topic, log_probabilities in zip(classifier.classes_, classifier.feature_log_prob_):
-        indices = np.argsort(log_probabilities)[-count:][::-1]
-        result[str(topic)] = [str(words[index]) for index in indices]
+        indices = np.argsort(log_probabilities)[::-1]
+        top_words = [
+            str(words[index])
+            for index in indices
+            if not set(str(words[index]).split()).intersection(stop_words)
+        ]
+        result[str(topic)] = top_words[:count]
     return result
 
 
@@ -293,6 +304,91 @@ def _interpretation(slug: str, result: dict[str, Any]) -> str:
         f"The neural network estimates a {result['probability']:.0%} chance "
         "that this borrower will not pay back."
     )
+
+
+def _fallback_accounts() -> dict[str, dict[str, Any]]:
+    return {
+        "maria@pesolend.demo": {
+            "id": 1,
+            "name": "Maria Santos",
+            "email": "maria@pesolend.demo",
+            "password_hash": database.hash_password("demo1234"),
+            "role": "borrower",
+            "active_loan": {
+                "id": 1,
+                "product": "Personal loan",
+                "principal": 36_480,
+                "balance": 18_240,
+                "monthly_payment": 3_040,
+                "next_due_date": "2026-11-11",
+                "paid_count": 6,
+                "total_count": 12,
+                "status": "Active",
+            },
+        },
+        "new@pesolend.demo": {
+            "id": 2,
+            "name": "New Borrower",
+            "email": "new@pesolend.demo",
+            "password_hash": database.hash_password("demo1234"),
+            "role": "borrower",
+            "active_loan": None,
+        },
+        "officer@pesolend.demo": {
+            "id": 3,
+            "name": "Loan Officer",
+            "email": "officer@pesolend.demo",
+            "password_hash": database.hash_password("demo1234"),
+            "role": "officer",
+            "active_loan": None,
+        },
+    }
+
+
+def _use_memory_database(error: SQLAlchemyError) -> None:
+    if app.state.db_available:
+        LOGGER.warning(
+            "MySQL is unavailable; switching to in-memory demo storage: %s", error
+        )
+    app.state.db_available = False
+
+
+def _email_for_authorization(authorization: str | None) -> str:
+    prefix = "Bearer "
+    if authorization and authorization.startswith(prefix):
+        token = authorization[len(prefix):]
+        email = app.state.tokens.get(token)
+        if email:
+            return email
+    return "maria@pesolend.demo"
+
+
+def _save_application_record(
+    record: dict[str, Any],
+    payload: dict[str, Any],
+    email: str,
+) -> None:
+    state = app.state
+    if not state.db_available:
+        state.applications.append(record)
+        return
+    try:
+        account = database.find_user_by_email(email)
+        if account is None:
+            account = database.find_user_by_email("maria@pesolend.demo")
+        if account is None:
+            raise RuntimeError("The demo borrower account is missing from MySQL.")
+        created_at = datetime.fromisoformat(record["submitted_at"]).replace(tzinfo=None)
+        database.save_application(
+            user_id=account["id"],
+            input_json=json.dumps(payload, default=str),
+            result_json=json.dumps(record, default=str),
+            status=str(record["decision"]).lower(),
+            created_at=created_at,
+        )
+    except SQLAlchemyError as error:
+        _use_memory_database(error)
+        state.applications.append(record)
 
 
 def _prediction_response(
@@ -479,6 +575,17 @@ async def lifespan(app: FastAPI):
     app.state.borrowers = pd.read_csv(DATA_DIR / "borrowers.csv")
     app.state.messages = pd.read_csv(DATA_DIR / "messages.csv")
     app.state.applications = []
+    app.state.support_messages = []
+    app.state.tokens = {}
+    app.state.users = _fallback_accounts()
+    app.state.db_available = False
+    try:
+        database.initialize_database()
+        app.state.db_available = True
+    except SQLAlchemyError as error:
+        LOGGER.warning(
+            "MySQL is unavailable; using in-memory demo storage instead: %s", error
+        )
 
     seed_train_indices, _ = train_test_split(
         np.arange(len(app.state.borrowers)),
@@ -486,7 +593,19 @@ async def lifespan(app: FastAPI):
         random_state=42,
         stratify=app.state.borrowers["paid_back"],
     )
-    for index in seed_train_indices[:10]:
+    if app.state.db_available:
+        try:
+            existing_applications = database.list_applications()
+            app.state.applications = existing_applications
+            should_seed_applications = not existing_applications
+        except SQLAlchemyError as error:
+            _use_memory_database(error)
+            should_seed_applications = True
+    else:
+        should_seed_applications = True
+
+    seed_indices = seed_train_indices[:10] if should_seed_applications else []
+    for seed_number, index in enumerate(seed_indices, start=1):
         row = app.state.borrowers.iloc[int(index)]
         payload = {
             feature: row[feature]
@@ -494,14 +613,21 @@ async def lifespan(app: FastAPI):
             if feature != "payment_history"
         }
         payload["payment_history"] = str(row["payment_history"])
-        app.state.applications.append(
-            _application_record(
-                app.state,
-                payload,
-                applicant_name=f"Demo applicant {len(app.state.applications) + 1}",
-                term=6,
-            )
+        record = _application_record(
+            app.state,
+            payload,
+            applicant_name=f"Demo applicant {seed_number}",
+            term=6,
         )
+        if app.state.db_available:
+            _save_application_record(record, payload, "maria@pesolend.demo")
+        else:
+            app.state.applications.append(record)
+    if app.state.db_available:
+        try:
+            app.state.applications = database.list_applications()
+        except SQLAlchemyError as error:
+            _use_memory_database(error)
     yield
 
 
@@ -512,7 +638,13 @@ app = FastAPI(
 )
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8443"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:8443",
+        "http://127.0.0.1:8443",
+    ],
+    allow_origin_regex=r"^http://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+|10\.\d+\.\d+\.\d+):(5173|8443)$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -521,15 +653,48 @@ app.add_middleware(
 
 @app.post("/api/auth/login")
 def login(request: LoginRequest) -> dict[str, str]:
+    email = request.email.strip().lower()
+    account: dict[str, Any] | None = None
+    if app.state.db_available:
+        try:
+            account = database.find_user_by_email(email)
+        except SQLAlchemyError as error:
+            _use_memory_database(error)
+    if account is None and not app.state.db_available:
+        account = app.state.users.get(email)
+    if account is None or not database.verify_password(
+        request.password, account["password_hash"]
+    ):
+        raise HTTPException(status_code=401, detail="Invalid email or password.")
+    token = uuid4().hex
+    app.state.tokens[token] = account["email"]
+    if account["role"] not in {"officer", "borrower"}:
+        raise HTTPException(status_code=403, detail="This account has an unsupported role.")
     role: Literal["officer", "borrower"] = (
-        "officer" if "officer" in request.email.lower() else "borrower"
+        "officer" if account["role"] == "officer" else "borrower"
     )
-    return {"token": f"demo-{role}", "role": role}
+    return {"token": token, "role": role}
 
 
 @app.get("/api/me")
-def get_me() -> dict[str, Any]:
+def get_me(authorization: str | None = Header(default=None)) -> dict[str, Any]:
     state = app.state
+    prefix = "Bearer "
+    if not authorization or not authorization.startswith(prefix):
+        raise HTTPException(status_code=401, detail="A valid bearer token is required.")
+    email = state.tokens.get(authorization[len(prefix):])
+    if email is None:
+        raise HTTPException(status_code=401, detail="Invalid or expired token.")
+    account: dict[str, Any] | None = None
+    if state.db_available:
+        try:
+            account = database.find_user_by_email_with_loan(email)
+        except SQLAlchemyError as error:
+            _use_memory_database(error)
+    if account is None and not state.db_available:
+        account = state.users.get(email)
+    if account is None:
+        raise HTTPException(status_code=401, detail="The account for this token was not found.")
     profile, _ = _borrower_values({})
     loan_limit = max(
         0,
@@ -550,27 +715,38 @@ def get_me() -> dict[str, Any]:
         ),
     )
     return {
-        "name": "Maria Santos",
-        "email": "maria@example.com",
+        "name": account["name"],
+        "email": account["email"],
+        "role": account["role"],
         "kyc_status": "Verified",
         "loan_limit": loan_limit,
+        "active_loan": account.get("active_loan"),
     }
 
 
 @app.post("/api/applications")
-def submit_application(request: PredictionRequest) -> dict[str, Any]:
+def submit_application(
+    request: PredictionRequest,
+    authorization: str | None = Header(default=None),
+) -> dict[str, Any]:
+    payload = request.model_dump(exclude_none=True)
     record = _application_record(
         app.state,
         request,
         applicant_name=request.applicant_name or "Demo applicant",
         term=request.term or 6,
     )
-    app.state.applications.append(record)
+    _save_application_record(record, payload, _email_for_authorization(authorization))
     return record
 
 
 @app.get("/api/officer/applications")
 def list_applications() -> list[dict[str, Any]]:
+    if app.state.db_available:
+        try:
+            return database.list_applications()
+        except SQLAlchemyError as error:
+            _use_memory_database(error)
     return app.state.applications
 
 
@@ -634,5 +810,41 @@ def get_metrics() -> dict[str, Any]:
 
 
 @app.post("/api/{slug}")
-def predict(slug: str, request: PredictionRequest) -> dict[str, Any]:
-    return _prediction_response(app.state, slug, request)
+def predict(
+    slug: str,
+    request: PredictionRequest,
+    authorization: str | None = Header(default=None),
+) -> dict[str, Any]:
+    response = _prediction_response(app.state, slug, request)
+    if slug == "classify-message" and request.message:
+        email = _email_for_authorization(authorization)
+        created_at = datetime.now(timezone.utc).replace(tzinfo=None)
+        if app.state.db_available:
+            try:
+                account = database.find_user_by_email(email)
+                if account is None:
+                    account = database.find_user_by_email("maria@pesolend.demo")
+                if account is None:
+                    raise RuntimeError("The demo borrower account is missing from MySQL.")
+                database.save_support_message(
+                    user_id=account["id"],
+                    message=request.message,
+                    topic=str(response["topic"]),
+                    created_at=created_at,
+                )
+            except SQLAlchemyError as error:
+                _use_memory_database(error)
+                app.state.support_messages.append({
+                    "email": email,
+                    "message": request.message,
+                    "topic": response["topic"],
+                    "created_at": created_at.isoformat(),
+                })
+        else:
+            app.state.support_messages.append({
+                "email": email,
+                "message": request.message,
+                "topic": response["topic"],
+                "created_at": created_at.isoformat(),
+            })
+    return response

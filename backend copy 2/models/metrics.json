@@ -1,0 +1,168 @@
+{
+  "split": {
+    "train_fraction": 0.8,
+    "test_fraction": 0.2,
+    "random_state": 42
+  },
+  "models": {
+    "loan-amount": {
+      "accuracy": null,
+      "recall_on_risky_borrowers": null,
+      "mae": 2093.4417418219473,
+      "rmse": 3261.3834045725057,
+      "r2": 0.9898479953348263,
+      "confusion_matrix": null,
+      "confusion_matrix_labels": null,
+      "risky_wrongly_approved": null,
+      "accuracy_by_k": null,
+      "target_definition": "safe_loan_amount",
+      "features": [
+        "income",
+        "expenses",
+        "credit_score",
+        "years_of_work"
+      ]
+    },
+    "decision": {
+      "accuracy": 0.825,
+      "majority_class_baseline_accuracy": 0.71875,
+      "recall_on_risky_borrowers": 0.5777777777777777,
+      "mae": null,
+      "r2": null,
+      "confusion_matrix": [
+        [
+          26,
+          19
+        ],
+        [
+          9,
+          106
+        ]
+      ],
+      "confusion_matrix_labels": [
+        0,
+        1
+      ],
+      "risky_wrongly_approved": 19,
+      "accuracy_by_k": null
+    },
+    "similar-borrowers": {
+      "accuracy": 0.84375,
+      "majority_class_baseline_accuracy": 0.71875,
+      "recall_on_risky_borrowers": 0.6222222222222222,
+      "mae": null,
+      "r2": null,
+      "confusion_matrix": [
+        [
+          28,
+          17
+        ],
+        [
+          8,
+          107
+        ]
+      ],
+      "confusion_matrix_labels": [
+        0,
+        1
+      ],
+      "risky_wrongly_approved": 17,
+      "accuracy_by_k": {
+        "3": 0.825,
+        "5": 0.84375,
+        "7": 0.80625
+      }
+    },
+    "classify-message": {
+      "accuracy": 0.85,
+      "majority_class_baseline_accuracy": 0.25,
+      "recall_on_risky_borrowers": null,
+      "mae": null,
+      "r2": null,
+      "confusion_matrix": [
+        [
+          7,
+          2,
+          0,
+          1
+        ],
+        [
+          0,
+          10,
+          0,
+          0
+        ],
+        [
+          1,
+          0,
+          9,
+          0
+        ],
+        [
+          1,
+          0,
+          1,
+          8
+        ]
+      ],
+      "confusion_matrix_labels": [
+        "Account problem",
+        "Complaint",
+        "Loan application",
+        "Payment"
+      ],
+      "risky_wrongly_approved": null,
+      "accuracy_by_k": null
+    },
+    "risk-label": {
+      "accuracy": 0.825,
+      "majority_class_baseline_accuracy": 0.71875,
+      "recall_on_risky_borrowers": 0.8666666666666667,
+      "mae": null,
+      "r2": null,
+      "confusion_matrix": [
+        [
+          39,
+          6
+        ],
+        [
+          22,
+          93
+        ]
+      ],
+      "confusion_matrix_labels": [
+        0,
+        1
+      ],
+      "risky_wrongly_approved": 6,
+      "accuracy_by_k": null
+    },
+    "risk-label-2d": {
+      "accuracy": 0.625,
+      "recall_on_risky_borrowers": 0.6222222222222222
+    },
+    "default-probability": {
+      "accuracy": 0.7875,
+      "majority_class_baseline_accuracy": 0.71875,
+      "recall_on_risky_borrowers": 0.4888888888888889,
+      "mae": null,
+      "r2": null,
+      "confusion_matrix": [
+        [
+          22,
+          23
+        ],
+        [
+          11,
+          104
+        ]
+      ],
+      "confusion_matrix_labels": [
+        0,
+        1
+      ],
+      "risky_wrongly_approved": 23,
+      "accuracy_by_k": null
+    }
+  }
+}
